@@ -59,6 +59,28 @@ make -j$(nproc) defconfig download clean world
 
 The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/mt7621/"
 
+### SmartWrt features and package additions
+
+* **Adblock Fast** — Adds system-wide ad and tracker blocking with LuCI integration.
+* **Argon Config** — Adds LuCI configuration support for the Argon theme.
+* **Bandix** — Adds bandwidth monitoring and visualization capabilities with LuCI integration.
+* **BCP38** — Adds network filtering to help prevent IP address spoofing from the local network.
+* **File Manager** — Adds a LuCI-based file manager for managing files directly from the web interface.
+* **Footstrap** — Adds the Footstrap LuCI theme as an alternative web interface.
+* **HD Idle** — Adds configurable hard-drive spindown/standby support for connected storage devices.
+* **HTTPS DNS Proxy** — Adds DNS-over-HTTPS forwarding support.
+* **IRQBalance** — Adds automatic distribution of hardware interrupts across available CPU cores.
+* **Ksmbd** — Adds a kernel-based SMB/CIFS file server for network file sharing.
+* **MiniDLNA** — Adds DLNA/UPnP media-server functionality for sharing multimedia content over the network.
+* **SmartDNS** — Adds advanced DNS resolution, including support for configurable DNS servers and optimized domain resolution.
+* **Travelmate** — Adds support for managing and sharing upstream Wi-Fi connections.
+* **uSteer** — Adds Wi-Fi client steering and access-point load balancing capabilities.
+* **Watchcat** — Adds automatic network connectivity monitoring and recovery mechanisms.
+* **WiFi Schedule** — Adds scheduled Wi-Fi enable/disable functionality.
+* **WireGuard** — Adds WireGuard VPN support, including LuCI configuration and management.
+* **WOL** — Adds Wake-on-LAN management through LuCI.
+* **WSDD2** — Adds Web Services Dynamic Discovery support for improved Windows network discovery.
+
 ## Licensing
 
 SmartWrt is based on OpenWrt and includes third-party components
