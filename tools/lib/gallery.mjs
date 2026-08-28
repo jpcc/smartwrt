@@ -1,0 +1,91 @@
+/* Shared harness for the two playwright gates that render docs/gallery.html: a11y-gallery.mjs (axe,
+ * WCAG 2.2 AA) and export-tier.mjs (the outbound --*-color-* contract). Nothing here ships.
+ *
+ * Both gates repeated the same ~20 lines — serve the gallery on an ephemeral port, stamp the
+ * Appearance axes onto :root — and the stamping is what mattered: each copy restated rules that
+ * already live in fs-prefs.js and head.ut's pre-paint, including the load-bearing one:
+ *
+ *     set --fs-tint-h BEFORE the data-tint attribute
+ *
+ * If the tint gains a second custom property, or accent joins the sweep, a forgotten copy goes on
+ * testing the OLD shape and passing. One copy. */
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { join, extname } from 'node:path';
+
+export { ROOT } from './root.mjs';
+import { ROOT } from './root.mjs';
+
+/* buildCss lives in lib/css.mjs — it is not a gallery concern, and devkit-build.mjs was importing
+ * it from here while having nothing to do with the gallery. */
+
+/* Serve docs/gallery.html + the freshly-built stylesheet on an ephemeral port. */
+export async function serveGallery(cssPath) {
+	const FILES = {
+		'/gallery.html': join(ROOT, 'docs/gallery.html'),
+		'/cascade.css': cssPath,
+	};
+	const TYPES = { '.html': 'text/html', '.css': 'text/css' };
+	const server = createServer(async (req, res) => {
+		const path = req.url.split('?')[0];
+		const file = FILES[path === '/' ? '/gallery.html' : path];
+		if (!file) { res.writeHead(404).end(); return; }
+		res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'text/plain' });
+		res.end(await readFile(file));
+	});
+	await new Promise((r) => server.listen(0, '127.0.0.1', r));
+	return {
+		base: `http://127.0.0.1:${server.address().port}/gallery.html`,
+		close: () => server.close(),
+	};
+}
+
+/* Stamp one point of the Appearance matrix onto :root, exactly the way the theme does.
+ *
+ * The one copy. It must stay in step with applyMode/applyPalette/colorAxis in fs-prefs.js and
+ * head.ut's pre-paint, or these gates go on proving something that is no longer true.
+ *
+ * `tint`/`accent`: null (or 0) is off, which CLEARS both attribute and custom property — an
+ * untinted router must cost exactly the palette it already had, so "off" is not hue 0.
+ *
+ * Only the HUE half of a colour axis is swept, and that is the honest scope: a hue rotation keeps
+ * the palette's lightness and chroma, so it is a contract these gates can hold the theme to across
+ * the whole wheel. A hex axis is a colour the ADMIN chose against no palette at all — no value of it
+ * could pass or fail, which is why the theme derives readable ink over it in CSS and the Appearance
+ * page reports the ratio instead of a gate asserting one. */
+export async function applyAppearance(page, { mode = 'light', palette = 'footstrap', tint = null, accent = null } = {}) {
+	await page.evaluate(([m, p, t, a]) => {
+		const root = document.documentElement;
+		root.setAttribute('data-darkmode', m === 'dark' ? 'true' : 'false');
+		if (p && p !== 'footstrap') root.setAttribute('data-palette', p);
+		else root.removeAttribute('data-palette');
+		/* colour axes in hue mode: the custom property FIRST, then the attribute that switches the
+		 * rotation on. The other order paints one frame with the previous hue — the theme's own
+		 * ordering rule. The attribute's VALUE says which mode is in effect, so 'hue' is not
+		 * decoration: :root[data-tint="hex"] means something else entirely. */
+		const hue = (val, attr, prop) => {
+			if (!val) { root.removeAttribute(attr); root.style.removeProperty(prop); return; }
+			root.style.setProperty(prop, String(val));
+			root.setAttribute(attr, 'hue');
+		};
+		hue(t, 'data-tint', '--fs-tint-h');
+		hue(a, 'data-accent', '--fs-accent-h');
+	}, [mode, palette, tint, accent]);
+	await page.waitForTimeout(150);
+}
+
+/* The palette x mode grid both gates sweep. The TINT list is a PARAMETER, not shared: axe takes
+ * the two extremes, export-tier walks the wheel at 60°. That difference is deliberate and argued
+ * in each caller; the scaffolding around it is not. */
+export function matrix(tints = [null]) {
+	return [
+		{ palette: 'footstrap', mode: 'light' },
+		{ palette: 'footstrap', mode: 'dark' },
+		{ palette: 'hicontrast', mode: 'light' },
+		{ palette: 'hicontrast', mode: 'dark' },
+		{ palette: 'bootstrap', mode: 'light' },
+		{ palette: 'bootstrap', mode: 'dark' },
+		{ palette: '2020', mode: 'light' },
+		{ palette: '2020', mode: 'dark' },
+	].flatMap((c) => tints.map((tint) => ({ ...c, tint })));
+}

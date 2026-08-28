@@ -1,0 +1,366 @@
+# The package: source tree, Makefile, install scripts
+
+Reference for what is where in `luci-theme-footstrap/`, what the Makefile does that a template
+theme would not, and what runs on the router at install and removal time.
+
+How the packages are actually built and published: [ci.md](ci.md).
+
+## Source tree
+
+```
+luci-theme-footstrap/
+├── Makefile
+├── build-css.sh          styles/ → cascade.css (cat + awk, no node)
+├── mangle-tokens.sh      shorten the private --fs-* names in a BUILT sheet
+├── strip-templates.sh    drop the comments from .ut (template and whole-line code)
+├── strip-shell.sh        drop whole-line # from root/**.sh
+├── build-apk.sh          SDK build, kept so the theme stays buildable without owfeed
+├── dev-sync.sh           deploy to a HARDWARE router over ssh (containers use owlab)
+├── update-po.sh          regenerate/verify the translation catalogue
+├── luci-upstream.pin     pinned openwrt/luci commit + sha256 of the borrowed tools
+├── styles/               CSS SOURCE. Not shipped — luci.mk does not copy it
+├── po/                   translation catalogue; luci.mk turns it into luci-i18n-* packages
+│   ├── templates/footstrap.pot
+│   ├── ru/footstrap.po
+│   └── es/footstrap.po
+├── htdocs/luci-static/   → /www/luci-static/
+│   ├── footstrap/        cascade.css (GENERATED, gitignored), logo.svg,
+│   │                     manifest.json + app-icon-512.png (ONE raster: every browser that
+│   │                     installs a page picks the largest icon and downscales, and iOS reads
+│   │                     the apple-touch-icon LINK, which points at the same file)
+│   │                     (the raster is COMMITTED and made by tools/build-icons.mjs — the
+│   │                      buildbot has no browser; `npm run icons` proves it matches logo.svg)
+│   │                     (pattern.svg and fonts/ are NOT here: they are symlinks uci-defaults
+│   │                      makes to /etc/footstrap/, which the admin uploads or installs)
+│   └── resources/        menu-footstrap.js, menu-footstrap-common.js, fs-*.js
+├── root/                 → /
+│   ├── etc/uci-defaults/30_luci-theme-footstrap
+│   ├── etc/config/footstrap                      empty stub, written at runtime
+│   ├── lib/upgrade/keep.d/luci-theme-footstrap   what sysupgrade carries across a flash
+│   └── usr/share/rpcd/acl.d/luci-theme-footstrap.json
+└── ucode/template/themes/footstrap/    → /usr/share/ucode/luci/template/…
+    ├── header.ut  footer.ut  sysauth.ut
+    └── partials/{head,brand,logout,notices,notice,search,icon,footer}.ut
+```
+
+`luci.mk` installs by directory presence — no install recipes needed:
+
+| Source | Installed to |
+|---|---|
+| `ucode/*` | `/usr/share/ucode/luci/` |
+| `htdocs/*` | `/www/` |
+| `root/*` | `/` |
+| `root/etc/uci-defaults/*` | picked up as `LUCI_DEFAULTS` |
+
+Only `src/ luasrc/ htdocs/ root/ ucode/ po/` are copied verbatim. `styles/` is not in that list,
+which is why `cascade.css` is generated in `Build/Prepare` straight into the build tree and is
+absent from git.
+
+**Never edit `cascade.css`.** Colours go in `styles/03-palettes.css`, scales and tokens in
+`styles/02-tokens.css`. See [css.md](css.md).
+
+**The web manifest is a static file, and that is a constraint, not a shortcut.** A theme may not
+register a dispatcher node — it would outlive the theme that registered it — so there is nothing that
+could render the manifest per request. Two values are fixed by that: `start_url`/`scope` are
+`/cgi-bin/luci/`, uhttpd's own default, and `background_color`/`theme_color` are the DEFAULT palette's
+page colour, since the manifest is read once at install time and cannot follow a live Appearance
+change (it paints the splash and the installed window's chrome, never the page). Chrome's install
+prompt needs a secure context, so over plain HTTP what this buys is iOS's Add to Home Screen — which
+reads the `apple-touch-icon` link rather than the manifest — plus the icon itself. Regenerate it with
+`node tools/build-icons.mjs` whenever `logo.svg` changes; `npm run icons` fails if you forget.
+
+The committed file is **quantised to a 32-colour palette**, which is 4.6 KB where the browser's own
+RGBA screenshot is 15.7 KB: the picture is a flat background, one ink colour and the ramp between
+them, so a palette is the right encoding and the worst channel moves by 18 of 255 on 0.2% of the
+pixels. That step is the one thing in this repo that wants **ImageMagick**, and only when
+regenerating — `npm run icons` compares PIXELS in the browser it already runs, so a different
+ImageMagick version is not a failure and a redrawn logo still is. Nothing in luci-base could stand in
+for the icon, which is worth stating: it ships functional glyphs (interfaces, signal bars, ports) and
+no logo or raster of any kind, and every theme carries its own.
+
+## Makefile: what differs from a template theme
+
+```makefile
+PKG_NAME:=luci-theme-footstrap
+LUCI_NAME:=luci-theme-footstrap   # pin: luci.mk keys the Build/Prepare hook name on LUCI_NAME,
+                                  # which defaults to the checkout directory — the CSS build
+                                  # would silently not run in a renamed checkout
+FOOTSTRAP_VERSION?=               # CI injects it from the tag; locally the version is git-derived
+LUCI_TITLE:=Footstrap Theme
+LUCI_DEPENDS:=+luci-base          # the WHOLE dependency list
+LUCI_PKGARCH:=all                 # noarch: one build for every target
+LUCI_MAINTAINER / LUCI_URL        # otherwise the package claims "OpenWrt LuCI community"
+LUCI_MINIFY_CSS:=0                # see below
+PKG_LICENSE:=Apache-2.0           # the theme, and nothing else: it carries no webfonts
+include $(TOPDIR)/feeds/luci/luci.mk   # ABSOLUTE, not ../../luci.mk: CI rsyncs the package into
+                                       # package/, not into the feed
+```
+
+**Do not set `PKG_VERSION`.** `luci.mk` derives it from git; CI injects `FOOTSTRAP_VERSION` from
+the tag, because an SDK build has no `.git` to derive from.
+
+### Minification: CSS off, JS on two paths
+
+Two different tools; confusing them is expensive.
+
+- **`LUCI_MINIFY_CSS:=0` is mandatory.** luci.mk's CSS minifier is **csstidy**, old enough to
+  mangle `:has()`, `color-mix()` and nested `calc()`: the package installs and the layout falls
+  apart. `build-css.sh` minifies instead — a string-aware awk pass of its own.
+- **`LUCI_MINIFY_JS` has two paths.** A release CI build pre-minifies with **terser**
+  (`tools/minify-js.mjs`, which can mangle identifiers — jsmin cannot) and sets
+  `FOOTSTRAP_PREMIN=1`, which turns `LUCI_MINIFY_JS` to `0`; jsmin on top of terser output would
+  reopen the `return /re/` trap on forms terser legitimately emits. A build **without** node (SDK
+  user, buildbot) keeps the default `1`, and jsmin minifies the untouched source. Both paths
+  matter: comments are ~60% of the JS source, and uhttpd serves `/www` **uncompressed**, so those
+  are bytes on the wire and in flash.
+
+  The source therefore has to stay jsmin-safe — see the regex rule in
+  [conventions.md](conventions.md).
+
+### `Build/Prepare` — six steps, in this order
+
+The hook (its name keys on `LUCI_NAME`) runs right after luci.mk copies the sources into
+`PKG_BUILD_DIR`, and edits the **copy**:
+
+1. **Copy `LICENSE`** into `PKG_BUILD_DIR` — `PKG_LICENSE_FILES` resolves against *that*, and
+   luci.mk does not copy the package root.
+2. **`build-css.sh`** → `cascade.css` in the build tree. `cat`/`awk` only, so it runs on the
+   OpenWrt buildbot with no host toolchain.
+3. **`mangle-tokens.sh`** — shorten the private `--fs-*` names, 16% of the sheet.
+   **Before** step 4 on purpose: the reserved set is derived by reading the JS and the templates,
+   so it must see them whole — and step 4 is what strips the template comments. It reads them from the **source** tree, never from
+   `PKG_BUILD_DIR` — in CI the build tree's JS has already been through terser, its comments are
+   gone, and five names that only appear in a comment would stop being reserved. That made the
+   shipped sheet depend on *who* built it.
+4. **`strip-templates.sh`** — the comments out of the `.ut` files: `{# … #}` template comments, and
+   `/* … */` code comments **that own their lines**, wherever they sit (ucode inside `{% … %}`,
+   JavaScript inside an inline `<script>`, CSS inside an inline `<style>`). 63 KB of templates
+   become 21 KB, which is **−7.4 KB of the compressed package** — it went from 72.4 KB to 65.2 KB —
+   and −7 KB on every page the router serves, since uhttpd serves `/www` uncompressed.
+
+   The rule is what makes this safe, and it is not "remove `/* … */`": a comment is removed only
+   when `/*` is the first non-blank thing on its line and `*/` the last on its (possibly later)
+   line. To eat live code, a string literal would have to span lines *and* contain a line that is
+   nothing but a comment; measured across every `.ut` here, 18362 of 18362 comment bytes are
+   whole-line, none are inline, and no multi-line template literal contains a line-leading `/*`.
+   Anything that does not fit the rule is left in place and counted — the tree has exactly one such
+   case today, the glob `` `/usr/lib/lua/luci/i18n/*.${lang}.lmo` ``, whose `/*` is in a string.
+   Verified on a live router, not only by reading: the pages the stripped templates serve are
+   byte-identical to the ones the source templates serve, once the comments are removed from both
+   (the only remaining difference is the session id).
+5. **`strip-shell.sh`** — whole-line `#` out of the shell under `root/`.
+6. **Stamp `FS_VERSION`** into `fs-version.js` with `sed`. The path is part of the contract —
+   `dev-sync.sh` and `tools/stage.sh` run the same substitution, so moving the constant means
+   fixing three places.
+### The catalogue lives in `po/`, and luci.mk owns it
+
+`LUCI_LANGUAGES` in luci.mk is `$(wildcard po/*)`, so a `po/` directory makes it bake a
+`luci-i18n-footstrap-<lang>` package per language — the ordinary arrangement for everything in the
+luci tree, and the only one [Weblate](https://hosted.weblate.org/engage/openwrt/) can translate,
+which `CONTRIBUTING.md` names as *the* way to translate LuCI. Nothing in this package's own
+`Build/Prepare` touches the catalogue.
+
+It was `i18n/` from v0.8.5 to v0.12.x, which is what stopped the language packages being
+generated. The reason was issue #6: the self-update script people had installed **at the time** picked
+its asset with `grep -E '\.apk$' | head -1`, GitHub returns assets **sorted by name**, and
+`luci-i18n-…` sorts before `luci-theme-…` — so the Update button installed a 6 KB catalogue
+instead of the theme, reported success, and offered the same update forever. A script already on
+somebody's router cannot be fixed remotely, so the *release* was fixed instead.
+
+That script is retired, and the release is built by owfeed, which packages this theme as exactly
+one artifact per format whatever luci.mk would have done. The constraint that bought the rename is
+gone; the cost of keeping it — a catalogue the project's own translation platform cannot see — is
+not. `tools/check-packages.sh` still asserts one theme package per format.
+
+In the owfeed-built package the `.lmo` basename is **`footstrap-theme.<lang>.lmo`**, not
+`footstrap.<lang>.lmo`: `lmo_load_catalog` globs `*.<lang>.lmo` so any basename loads, and keeping
+the two builds' paths distinct means a router can carry both without a file conflict.
+
+## uci-defaults: registration
+
+`root/etc/uci-defaults/30_luci-theme-footstrap` is the **single source of truth** for
+registration (`dev-sync.sh` runs the same file; nothing else registers the theme).
+
+- Registers **one** entry: `luci.themes.Footstrap=/luci-static/footstrap`. Layout, palette, mode
+  and rounding are **client** switches on the Footstrap tab.
+- The key in `themes.<Name>` is CamelCase without hyphens — a uci option-name limitation.
+- Links the three admin uploads into `/www`: `bg`, `pattern.svg` and the `fonts/` directory all
+  live in `/etc/footstrap`, because uhttpd serves `/www` only and `/etc` is what a sysupgrade
+  keeps. The pattern keeps its `.svg` name — uhttpd types a response by extension.
+
+**It runs TWICE per install, not once.** Our `postinst` calls it, and OpenWrt's stock
+`default_postinst` separately runs and then deletes every `/etc/uci-defaults/*` in the package.
+The script is idempotent, so this is harmless.
+
+**Fresh install vs upgrade is decided by the registration itself.** `mediaurlbase` is written only
+in the run that first added `luci.themes.Footstrap`; on an upgrade the entry is already there, so
+nothing moves a router off the theme it is on. `[ "$PKG_UPGRADE" != 1 ]` is checked beside it, as
+the other themes in the tree do, but carries nothing on its own: apk never exports the variable and
+neither does our postinst.
+
+**It migrates nothing from older footstraps, on purpose.** A router is expected to `sysupgrade`
+rather than upgrade single packages, so leftovers go with the image; what remains worth cleaning is
+config, and the one config key this package owns is the theme entry. That was not always so — the
+script used to delete eight legacy theme names, re-point four legacy media paths, carry the old
+top-bar layout into `luci.main.footstrap_layout`, sweep two downloaded wallpapers and a pre-0.12.1
+`fonts/` directory, and fall back to bootstrap if the active theme's files were missing. All of it
+served installs that predate the first version published in the LuCI tree. Requested in review:
+start from the assumption that a user of the official package started there.
+
+## postinst / postrm
+
+`postinst` re-runs uci-defaults, clears the LuCI caches and does **`rpcd reload`, never
+`restart`**: rpcd holds sessions in memory, and a restart logs out every LuCI user — including
+the admin who just clicked Update. `reload` sends SIGHUP, which re-reads
+`/usr/share/rpcd/acl.d/*`, the only thing this package needs from rpcd.
+
+`postrm` does three things, and exits early on an upgrade (`case "$1" in *upgrade*`) because opkg
+runs the OLD package's postrm mid-upgrade — reverting `mediaurlbase` there is what once flipped
+every updating 24.10 user back to bootstrap:
+
+- deletes `luci.themes.Footstrap`;
+- if our theme is still active, moves `mediaurlbase` back to bootstrap on a **two-part** check
+  (both the media directory *and* the ucode template must exist: a one-sided check would hand the
+  UI to a half-removed bootstrap, which is the white page this branch was written for);
+- removes `/etc/footstrap` — the admin's uploads, kept out of the package so an upgrade preserves
+  them, and a real removal is the one time they should go — and does `rpcd reload`.
+
+## `/etc/config/footstrap` must be a conffile
+
+The package ships `root/etc/config/footstrap` as an **empty stub that is written at runtime**:
+"Save as default" has rpcd uci-set the router-wide axes into that very file
+(`saveAsDefault()` in `fs-prefs.js`).
+
+With no `conffiles` define, the package manager owns it as an ordinary file and **replaces it on
+upgrade** — so the admin's saved defaults were wiped by the theme's own one-click Update, silently,
+and reported as success. Measured on a live router: it held eight options, was package-owned, and
+had no `.conffiles` entry beside base-files' and dnsmasq's.
+
+Nothing observable fails when this regresses — the wipe happens on somebody else's router, months
+later — so `npm run conffiles` gates it: every shipped `/etc/config/*` must be declared.
+
+The uploaded background is the sibling case with the other answer. `/etc/footstrap/login-bg` is
+written at runtime too, but it lives outside `/etc/config`, so a package upgrade never touches it
+and a conffile entry would be rejected (the package does not ship that path). What *would* eat it is
+a firmware **sysupgrade**, which keeps only what is listed — hence
+`root/lib/upgrade/keep.d/luci-theme-footstrap`.
+
+Three things now take that route, and `/etc/footstrap/` is where all of them live: the background,
+the wallpaper pattern, and `/etc/footstrap/fonts/` — the webfonts `fonts/set-font.sh` installs,
+along with the `@font-face` sheet it generates beside them. Each is exposed by a symlink under
+`/www/luci-static/footstrap/` that uci-defaults recreates on **every** install and upgrade rather
+than shipping, because `/www` is repopulated from firmware on a sysupgrade.
+
+The fonts one links a **directory**, and that has two traps which end identically — `ln` exits 0 and
+the link lands at `…/fonts/fonts`, one level too deep, so nothing serves and nothing complains:
+
+- the path is already a symlink to a directory, and `ln -sf` follows it. `-n` is the fix;
+- the path is a **real directory** — which every footstrap before 0.12.1 shipped here, full of the
+  woff2 files it carried — and `-n` does not help. Measured on a 25.12 router: exit 0, link created
+  inside. So the path is cleared first unless it already is the symlink we want, in uci-defaults and
+  in `set-font.sh` alike.
+
+No ACL entry goes with the fonts, and none should: `set-font.sh` is root on the router with a shell,
+not a browser going through rpcd. Nothing in the UI writes those three options.
+
+## ACL
+
+`root/usr/share/rpcd/acl.d/luci-theme-footstrap.json` grants what the Footstrap tab needs to persist
+a router-wide default and a login background:
+
+- `uci` `set`/`commit`, scoped to the `footstrap` config — "Save as default";
+- `cgi-io upload` plus `file` `write`/`remove` on `/etc/footstrap/login-bg` and
+  `/etc/footstrap/pattern.svg` — the wallpaper photo and the tiled pattern;
+- `file exec` on two literal commands, `/bin/chmod 644 /etc/footstrap/login-bg` and the same for
+  `/etc/footstrap/pattern.svg` — an upload that is not world-readable is one uhttpd answers with 403.
+
+Those two `file.exec` grants are the only ones the theme ships, and each is one fixed
+argument-complete command.
+There is no grant for self-update, because there is no self-update: the theme upgrades through the
+package feed the installer adds.
+
+rpcd **skips an unreadable file in `acl.d` and says nothing**, so a stray comma means the grant
+is issued to nobody and nothing else notices. `npm run acl` (`tools/check-acl.sh`, also a step in
+CI's `check` job) parses every shipped `acl.d/*.json` and additionally rejects a document that
+parses but grants nothing — a list instead of an object, or an entry with neither `read` nor
+`write`, both of which rpcd accepts just as quietly.
+
+A related trap the page had to solve: `rpc.js` only raises on the ubus status code when the
+declaration asks it to (`reject: true`). Without it, a per-config ACL refusal — `uci` granted,
+`footstrap` not — **resolves** with status 6 (permission denied) and every `.then()` runs as if the
+file had been written.
+
+## `luci-upstream.pin`
+
+The single source for the pinned `openwrt/luci` commit and the sha256 of the two borrowed tools
+that CI **downloads and RUNS** as gates:
+
+- `luci-base/src/jsmin.c` — decides whether the shipped JS is safe;
+- `build/i18n-scan.pl` — decides whether the catalogue is complete. It lexes `.ut` (rewriting the
+  template into JS before xgettext) and picks up the title from the rpcd ACL; a `grep` for
+  `_('…')` does neither.
+
+Taken from a moving `master`, these gates would be "whatever upstream pushed last"; the sha256
+says so out loud. The same file pins `USIGN_PIN` (so the signer in CI and the verifier in the field
+are the same code) and `OPENWRT_KEYRING_PIN` — the commit of `openwrt/keyring` the release SDK's
+signing keys are read from, pinned from a *different* host than the tarball they verify.
+
+It deliberately pins **no ucode**. The template compile-check moved into the `verify` containers,
+where the router's own interpreter runs it against the installed templates on both release lines
+([ci.md](ci.md)) — so there is no interpreter to build and no commit to keep current, and the file
+says so in place to stop the pin coming back.
+
+## The same package, twice: this tree and the luci tree
+
+The theme **is in** [openwrt/luci](https://github.com/openwrt/luci) as
+`themes/luci-theme-footstrap` (merged 2026-08-20), and the copy that lives there is **not** this
+directory copied across. `tools/sync-luci-fork.sh <path-to-luci>` materialises it, and the
+difference is one decision made twice.
+
+**How a change gets there now.** Their `CONTRIBUTING.md` is the authority and the shape is
+ordinary: a feature branch off a fresh `upstream/master`, one PR per change, subject
+`luci-theme-footstrap: <lowercase description>`, a body that says why, and a `Signed-off-by` with a
+real first and last name (a GitHub noreply address is refused). `git push -f` is explicitly the way
+to update a PR — inside your own branch, never on master. Release branches (`openwrt-25.12`, …)
+take bug and security fixes only; a new package never lands on one, which is why the theme reaches
+users of a *release* through owfeed and reaches everyone else with the next OpenWrt release.
+
+**Two things the sync cannot carry, and both have bitten once.** The far side's `Makefile` is
+hand-maintained (`include ../../luci.mk`, `PKG_MAINTAINER`), so `postinst`, `postrm` and
+`conffiles` have to be changed there as well — a postrm cleaned up here and not there is exactly
+the kind of divergence nothing else notices. And `po/` belongs to **Weblate** over there: upstream
+forbids editing catalogues by hand, so the sync no longer sends them, and a msgid change is its own
+deliberate PR against `po/templates/`. `npm run fork-drift` lists every shipped file the two trees
+disagree about and names those two separately; it is a report rather than a gate, because an
+unproposed change is a legitimate difference.
+
+**That tree gets the built stylesheet; this one keeps the layers.** Here, `styles/` is thirty-nine
+files in four cascade layers whose *order* is the design, and `cascade.css` is a build artefact
+this repository does not even track. There, the other four themes each commit one `cascade.css`
+and have no build step at all — a theme arriving with its own build system asks a reviewer to
+audit that before they can read a stylesheet. So the sheet is generated on this side and
+committed on that one, and `styles/` plus the four shell scripts do not travel.
+
+**Nothing else is optimised on the way.** Measured against the stock tree, no package in
+`openwrt/luci` ships anything pre-minified: the four themes' stylesheets run 17–20 bytes per line
+and `luci-base`'s own JS 28–29, i.e. ordinary source with indentation. So the copy keeps its
+`--fs-*` names unmangled, its templates and shell keep their comments, and the JS goes over
+untouched for `luci.mk` to run **jsmin** across at package time — which is what every other
+package in that tree gets. The release path here does more (terser, `mangle-tokens.sh`, comment
+stripping) and the packages differ by about 14% because of it: 76 321 bytes against 66 825.
+
+The one place the copy still stands out is the sheet itself, at 128 bytes per line against the
+stock 17–20, and the arithmetic is why it stays: unminified it is **467 615 bytes**, eight times
+the largest stock theme, because this repository keeps the *why* beside each rule and in source
+form those comments are 70% of the file. The choice there is not "like everyone else" versus
+"minified" — it is 136 kB of minified sheet against 468 kB of prose.
+
+Two more things the copy changes, both in the Makefile, which is the one file maintained by hand
+on the far side and never overwritten by the sync:
+
+- `include ../../luci.mk`, not `$(TOPDIR)/feeds/luci/luci.mk` — in-tree, that is the path.
+- `PKG_MAINTAINER` rather than `LUCI_MAINTAINER`: 96 of 101 apps in that tree use the former, and
+  the formality bot reads it.
+
+Re-run the sync after any change under `styles/`, or the committed sheet is a stale artefact of a
+source that has moved.

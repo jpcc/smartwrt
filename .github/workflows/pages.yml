@@ -1,0 +1,123 @@
+# Publishes the developer portal to GitHub Pages. devkit.html is generated (like cascade.css), so it
+# is built here, never committed. The gallery is published too — it needs a real cascade.css and the
+# wallpaper assets next to it, so those are copied in.
+#
+# One-time setup by a maintainer: repo Settings -> Pages -> Source = "GitHub Actions".
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/devkit.src.html'
+      - 'docs/playground.src.html'
+      - 'docs/gallery.html'
+      - 'luci-theme-footstrap/styles/**'
+      - 'tools/devkit-build.mjs'
+      - 'tools/lib/gallery.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+  # Called by build.yml's release job once the release is published, which is what refreshes the
+  # release-metadata mirror below. It cannot be `on: release`: an event raised by GITHUB_TOKEN does
+  # not trigger another workflow.
+  workflow_call:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # 22, matching build.yml: eslint 10 / stylelint 17 need Node >= 20.19, and a bare `20` floats
+      # on the 20.x line that straddles that floor. Nothing here lints, but `npm ci` installs them
+      # and would EBADENGINE.
+      - uses: actions/setup-node@v7
+        with: { node-version: '22' }
+      - run: npm ci
+      - name: Build the portal
+        run: |
+          set -e
+          npm run devkit
+          MEDIA=luci-theme-footstrap/htdocs/luci-static/footstrap
+          # `mkdir -p _site` is not decoration: nothing else here creates the directory. It used to
+          # be a side effect of `mkdir -p _site/fonts`, and removing that line with the webfonts
+          # took the portal's whole output directory with it.
+          mkdir -p _site
+          cp docs/devkit.html _site/index.html          # portal is the Pages root
+          cp docs/devkit.html _site/devkit.html
+          cp docs/playground.html _site/playground.html
+          cp docs/gallery.html _site/gallery.html
+          luci-theme-footstrap/build-css.sh _site/cascade.css   # gallery loads this by <link>
+          # No fonts to copy: the theme carries none. The stylesheet names Manrope and JetBrains
+          # Mono first and the system stack after, so the portal renders in whatever the visitor
+          # has — the same thing a router does.
+          cp "$MEDIA"/logo.svg _site/
+          # The two sample patterns the playground links. They are not in the package — the
+          # Wallpaper axis takes an SVG the admin uploads — so the portal serves them from the
+          # repository copy. This glob has broken twice on a move; `set -e` plus a glob that matches
+          # nothing is a failed build, which is the loud outcome and the right one.
+          cp wallpapers/svg/*.svg _site/
+      # A FULL MIRROR OF THE LATEST RELEASE — the manifest, its signature AND THE PACKAGES, on a
+      # different host from github.com, so a block or an outage covering one need not cover the
+      # other.
+      #
+      # The packages are the point: a release asset URL redirects THROUGH github.com, so a router
+      # that cannot reach github.com cannot fetch the package either, and mirroring only the
+      # manifest moves the failure two lines later. What makes mirroring the packages safe is that
+      # the manifest is signed and carries their sha256, so mirror bytes are held to the same hash
+      # as GitHub's: the mirror is never trusted, only used.
+      #
+      # Pulled from the release on every Pages build, never committed and never assembled here:
+      # this workflow also fires on a docs push, and a build that did not carry the release forward
+      # would silently empty the mirror.
+      #
+      # Fails OPEN — a repo with no manifest release yet publishes the portal without a mirror.
+      - name: Mirror the latest release
+        run: |
+          set -eu
+          if ! curl -fsSL --retry 2 -o _site/manifest.txt \
+                 "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/manifest.txt"; then
+            rm -f _site/manifest.txt
+            echo "the latest release publishes no manifest — mirror skipped"
+            exit 0
+          fi
+          curl -fsSL --retry 2 -o _site/manifest.txt.sig \
+            "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/manifest.txt.sig"
+          # The installer too: a router that cannot reach github.com cannot fetch install.sh from
+          # there either, so a mirror without it leaves the user with a verified way to install and
+          # no way to obtain the installer. Its signature rides along so the script can be checked
+          # before it runs as root — the one link the trust chain cannot cover on its own.
+          for f in install.sh install.sh.sig; do
+            curl -fsSL --retry 2 -o "_site/$f" \
+              "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/$f" || rm -f "_site/$f"
+          done
+          # Every package the manifest names, under the name the manifest gives it — the same
+          # string a router asks this mirror for. Reading the file list out of the manifest rather
+          # than globbing the release is what keeps the two in step.
+          tag=$(awk '$1=="tag"{print $2; exit}' _site/manifest.txt)
+          awk '$1=="pkg"{print $4}' _site/manifest.txt | while read -r f; do
+            curl -fsSL --retry 2 -o "_site/$f" \
+              "https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/$f"
+            echo "mirrored: $f ($(wc -c < "_site/$f") bytes)"
+          done
+          echo "mirror of $tag complete."
+      - uses: actions/upload-pages-artifact@v5
+        with: { path: _site }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5
