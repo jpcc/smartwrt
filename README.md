@@ -59,25 +59,6 @@ make -j$(nproc) defconfig download clean world
 
 The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/mt7621/"
 
-### Related Repositories
-
-The main repository uses multiple sub-repositories to manage packages of
-different categories. All packages are installed via the OpenWrt package
-manager called `opkg`. If you're looking to develop the web interface or port
-packages to OpenWrt, please find the fitting repository below.
-
-* [LuCI Web Interface](https://github.com/openwrt/luci): Modern and modular
-  interface to control the device via a web browser.
-
-* [OpenWrt Packages](https://github.com/openwrt/packages): Community repository
-  of ported packages.
-
-* [OpenWrt Routing](https://github.com/openwrt/routing): Packages specifically
-  focused on (mesh) routing.
-
-* [OpenWrt Video](https://github.com/openwrt/video): Packages specifically
-  focused on display servers and clients (Xorg and Wayland).
-
 ## Licensing
 
 SmartWrt is based on OpenWrt and includes third-party components
