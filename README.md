@@ -6,11 +6,9 @@ The goal of SmartWrt is to make **minimal changes to OpenWrt**, primarily focuse
 
 ## Current Support
 
-At this time, the project is in an **experimental development, testing, and validation phase**, with an exclusive focus on:
+At this time, the project is in an **experimental development, testing, and validation phase**, with an exclusive focus on this devices:
 
-* **D-Link DIR-3040 A1**
-* **ramips** architecture
-* This platform is being used as the reference device for project development and validation
+* [**D-Link DIR-3040 A1**](https://techinfodepot.shoutwiki.com/wiki/D-Link_DIR-3040_rev_A1)
 
 Support for other devices and platforms is **not a priority at this stage**. Adaptations for additional targets may be considered in the future as the project evolves.
 
@@ -50,18 +48,16 @@ make4.1+ perl python3.8+ rsync subversion unzip which
 
 ### Quickstart
 
-1. Run `./scripts/feeds update -a` to obtain all the latest package definitions
-   defined in feeds.conf / feeds.conf.default
+```
+git clone https://github.com/jpcc/smartwrt.git
+cd smartwrt
+./scripts/feeds update -a
+./scripts/feeds install -a
+cp configs/dir-3040-a1.config .config
+make -j$(nproc) defconfig download clean world
+```
 
-2. Run `./scripts/feeds install -a` to install symlinks for all obtained
-   packages into package/feeds/
-
-3. Run `make menuconfig` to select your preferred configuration for the
-   toolchain, target system & firmware packages.
-
-4. Run `make` to build your firmware. This will download all sources, build the
-   cross-compile toolchain and then cross-compile the GNU/Linux kernel & all chosen
-   applications for your target system.
+The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/mt7621/"
 
 ### Related Repositories
 
