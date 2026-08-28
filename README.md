@@ -66,7 +66,7 @@ The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/m
 * **Bandix** — Adds bandwidth monitoring and visualization capabilities with LuCI integration.
 * **BCP38** — Adds network filtering to help prevent IP address spoofing from the local network.
 * **Binutils 2.45.1** — Uses GNU Binutils 2.45.1 as part of the SmartWrt toolchain.
-* **Compiler Optimizations** — Adds architecture-specific compiler optimizations targeting the MT7621 platform for improved performance and efficiency.
+* **Compiler Optimizations** — Adds architecture-specific compiler optimizations for improved performance and efficiency.
 * **File Manager** — Adds a LuCI-based file manager for managing files directly from the web interface.
 * **Footstrap** — Adds the Footstrap LuCI theme as an alternative web interface.
 * **GCC 15.2.0** — Uses GCC 15.2.0 as the compiler toolchain for building SmartWrt.
