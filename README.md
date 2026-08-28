@@ -62,6 +62,7 @@ The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/m
 ### SmartWrt features and package additions
 
 * **Adblock Fast** — Adds system-wide ad and tracker blocking with LuCI integration.
+* **Argon Theme** —  Adds the Argon LuCI theme as an alternative web interface.
 * **Argon Config** — Adds LuCI configuration support for the Argon theme.
 * **Bandix** — Adds bandwidth monitoring and visualization capabilities with LuCI integration.
 * **BCP38** — Adds network filtering to help prevent IP address spoofing from the local network.
@@ -72,20 +73,26 @@ The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/m
 * **Footstrap** — Adds the Footstrap LuCI theme as an alternative web interface.
 * **GCC 15.2.0** — Uses GCC 15.2.0 as the compiler toolchain for building SmartWrt.
 * **Hardening** — Adds additional compiler, linker, and runtime hardening measures to improve system security and resilience.
+* **Hardware-Accelerated Cryptography** — Adds hardware-accelerated cryptographic operations through the AF_ALG sockets engine.
+* **Hardware Flow Offloading** — Enables hardware-based flow offloading to accelerate packet forwarding and reduce CPU overhead for supported network traffic.
 * **HD Idle** — Adds configurable hard-drive spindown/standby support for connected storage devices.
 * **HTTPS DNS Proxy** — Adds DNS-over-HTTPS forwarding support.
 * **IRQBalance** — Adds automatic distribution of hardware interrupts across available CPU cores.
 * **Ksmbd** — Adds a kernel-based SMB/CIFS file server for network file sharing.
 * **MiniDLNA** — Adds DLNA/UPnP media-server functionality for sharing multimedia content over the network.
+* **OpenSSL** — Uses OpenSSL as the primary cryptographic and TLS library instead of mbedTLS.
+* **TCP BBR** — Uses TCP BBR as the default congestion-control algorithm, providing improved throughput, latency, and network utilization.
 * **SmartDNS** — Adds advanced DNS resolution, including support for configurable DNS servers and optimized domain resolution.
 * **Travelmate** — Adds support for managing and sharing upstream Wi-Fi connections.
 * **uSteer** — Adds Wi-Fi client steering and access-point load balancing capabilities.
 * **Watchcat** — Adds automatic network connectivity monitoring and recovery mechanisms.
 * **WiFi Schedule** — Adds scheduled Wi-Fi enable/disable functionality.
+* **Wpad-openssl** — Uses the full IEEE 802.1X authentication and supplicant implementation with OpenSSL, enabling advanced Wi-Fi roaming and authentication features including 802.11r Fast BSS Transition and 802.11k Radio Resource Management.
 * **WireGuard** — Adds WireGuard VPN support, including LuCI configuration and management.
 * **WOL** — Adds Wake-on-LAN management through LuCI.
 * **WSDD2** — Adds Web Services Dynamic Discovery support for improved Windows network discovery.
 * **ZRAM** — Adds compressed RAM-based block devices to improve memory utilization and reduce memory pressure on resource-constrained systems.
+* **ZSTD** — Adds Zstd as the default compression algorithm.
 
 ## Licensing
 
