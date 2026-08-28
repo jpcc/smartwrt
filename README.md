@@ -49,7 +49,3 @@ packages to OpenWrt, please find the fitting repository below.
 
 * [OpenWrt Video](https://github.com/openwrt/video): Packages specifically
   focused on display servers and clients (Xorg and Wayland).
-
-## License
-
-OpenWrt is licensed under GPL-2.0
