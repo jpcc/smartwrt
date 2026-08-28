@@ -66,7 +66,8 @@ The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/m
 * **Bandix** — Adds bandwidth monitoring and visualization capabilities with LuCI integration.
 * **BCP38** — Adds network filtering to help prevent IP address spoofing from the local network.
 * **Binutils 2.45.1** — Uses GNU Binutils 2.45.1 as part of the SmartWrt toolchain.
-* **Compiler Optimizations** — Adds architecture-specific compiler optimizations for improved performance and efficiency.
+* **Build and runtime optimizations** — Adds architecture-specific build and runtime optimizations.
+* **Compiler Optimizations** — Adds architecture-specific compiler optimizations.
 * **File Manager** — Adds a LuCI-based file manager for managing files directly from the web interface.
 * **Footstrap** — Adds the Footstrap LuCI theme as an alternative web interface.
 * **GCC 15.2.0** — Uses GCC 15.2.0 as the compiler toolchain for building SmartWrt.
@@ -76,7 +77,6 @@ The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/m
 * **IRQBalance** — Adds automatic distribution of hardware interrupts across available CPU cores.
 * **Ksmbd** — Adds a kernel-based SMB/CIFS file server for network file sharing.
 * **MiniDLNA** — Adds DLNA/UPnP media-server functionality for sharing multimedia content over the network.
-* **MT7621 Optimizations** — Adds platform-specific build and runtime optimizations for MediaTek MT7621-based devices.
 * **SmartDNS** — Adds advanced DNS resolution, including support for configurable DNS servers and optimized domain resolution.
 * **Travelmate** — Adds support for managing and sharing upstream Wi-Fi connections.
 * **uSteer** — Adds Wi-Fi client steering and access-point load balancing capabilities.
