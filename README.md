@@ -53,7 +53,7 @@ git clone https://github.com/jpcc/smartwrt.git
 cd smartwrt
 ./scripts/feeds update -a
 ./scripts/feeds install -a
-cp configs/dir-3040-a1.config .config
+cp configs/dir-3040.config .config
 make -j$(nproc) defconfig download clean world
 ```
 
