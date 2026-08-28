@@ -65,13 +65,18 @@ The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/m
 * **Argon Config** — Adds LuCI configuration support for the Argon theme.
 * **Bandix** — Adds bandwidth monitoring and visualization capabilities with LuCI integration.
 * **BCP38** — Adds network filtering to help prevent IP address spoofing from the local network.
+* **Binutils 2.45.1** — Uses GNU Binutils 2.45.1 as part of the SmartWrt toolchain.
+* **Compiler Optimizations** — Adds architecture-specific compiler optimizations targeting the MT7621 platform for improved performance and efficiency.
 * **File Manager** — Adds a LuCI-based file manager for managing files directly from the web interface.
 * **Footstrap** — Adds the Footstrap LuCI theme as an alternative web interface.
+* **GCC 15.2.0** — Uses GCC 15.2.0 as the compiler toolchain for building SmartWrt.
+* **Hardening** — Adds additional compiler, linker, and runtime hardening measures to improve system security and resilience.
 * **HD Idle** — Adds configurable hard-drive spindown/standby support for connected storage devices.
 * **HTTPS DNS Proxy** — Adds DNS-over-HTTPS forwarding support.
 * **IRQBalance** — Adds automatic distribution of hardware interrupts across available CPU cores.
 * **Ksmbd** — Adds a kernel-based SMB/CIFS file server for network file sharing.
 * **MiniDLNA** — Adds DLNA/UPnP media-server functionality for sharing multimedia content over the network.
+* **MT7621 Optimizations** — Adds platform-specific build and runtime optimizations for MediaTek MT7621-based devices.
 * **SmartDNS** — Adds advanced DNS resolution, including support for configurable DNS servers and optimized domain resolution.
 * **Travelmate** — Adds support for managing and sharing upstream Wi-Fi connections.
 * **uSteer** — Adds Wi-Fi client steering and access-point load balancing capabilities.
@@ -80,6 +85,7 @@ The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/m
 * **WireGuard** — Adds WireGuard VPN support, including LuCI configuration and management.
 * **WOL** — Adds Wake-on-LAN management through LuCI.
 * **WSDD2** — Adds Web Services Dynamic Discovery support for improved Windows network discovery.
+* **ZRAM** — Adds compressed RAM-based block devices to improve memory utilization and reduce memory pressure on resource-constrained systems.
 
 ## Licensing
 
