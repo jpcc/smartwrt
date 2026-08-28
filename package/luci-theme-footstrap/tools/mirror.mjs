@@ -1,0 +1,151 @@
+#!/usr/bin/env node
+/* @mirror — turn duplication you cannot delete into duplication that cannot ROT.
+ *
+ * Some duplication is forced rather than chosen: CSS cannot share a declaration block across two
+ * mutually exclusive guards — the stacked table's card layout is needed under a CLASS (.fs-stacked,
+ * the measured data table) AND under a CONTAINER QUERY (the config table, which cannot be measured;
+ * see fs-select.js). A script fetched with `curl | sh` and running BEFORE the package exists cannot
+ * source a library shipping inside that package, yet has to do exactly what it does.
+ *
+ * The trap: a structural duplicate detector (tools/css-dup.mjs) matches bodies that are IDENTICAL,
+ * so it goes QUIET the moment two copies diverge — exactly when it should shout. Not hypothetical:
+ * the fetch helper existed twice and had ALREADY drifted three ways (different backend order, one
+ * with no timeout on its first-choice tool, one missing the https redirect pin) and nothing said a
+ * word. So: tag every copy, assert they stay byte-identical. */
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
+
+import { ROOT } from './lib/root.mjs';
+
+/* Whole FILES pinned byte-identical — the same argument one level up. The Apache-2.0 text must
+ * exist twice and neither copy can go:
+ *   LICENSE                        the repo root, the only place GitHub looks
+ *   luci-theme-footstrap/LICENSE   the PACKAGE: PKG_LICENSE_FILES resolves against
+ *                                  $(PKG_BUILD_DIR), into which only the package source dirs are
+ *                                  copied, so the root file is unreachable from $(CURDIR).
+ * A licence text cannot carry an @mirror comment without ceasing to be the licence text. */
+const SAME_FILE = [
+	['LICENSE', 'luci-theme-footstrap/LICENSE'],
+];
+
+/* Where a mirror may live. Explicit on purpose: a mirror is a decision, and a glob picking up a
+ * new tree would let one appear without anybody choosing it. */
+const SEARCH = [
+	'luci-theme-footstrap/styles',
+	'luci-theme-footstrap/root',
+	'luci-theme-footstrap/htdocs/luci-static/resources',
+	'luci-theme-footstrap/Makefile',
+	/* install.sh is still searched and today holds no pin at all — the shell helpers it once mirrored
+	 * belonged to a self-update package that is retired and archived. Left in SEARCH so a pin added
+	 * here later is picked up, rather than removed and forgotten. */
+	'install.sh',
+];
+const EXT = /\.(css|js|sh|ut)$|(^|\/)(Makefile|30_luci-theme-footstrap)$/;
+
+/* SEARCH mixes directories with single files (Makefile, install.sh), so one isDirectory() stays. */
+const files = SEARCH.flatMap((s) => {
+	const p = join(ROOT, s);
+	return statSync(p).isDirectory()
+		? readdirSync(p, { recursive: true }).map((e) => join(p, e))
+		: [p];
+}).filter((f) => EXT.test(f));
+
+/* `@mirror name` opens, `@endmirror` closes. The tag may sit inside any comment syntax — we
+ * match the token only, and the closing line is not part of the body. */
+const OPEN = /@mirror\s+([A-Za-z0-9_-]+\/[A-Za-z0-9_-]+)/;
+const CLOSE = /@endmirror/;
+
+const groups = new Map();		/* "group/role" -> [{file, line, body}] */
+const errors = [];
+
+for (const f of files) {
+	const lines = readFileSync(f, 'utf8').split('\n');
+	let open = null;
+	for (let i = 0; i < lines.length; i++) {
+		const m = lines[i].match(OPEN);
+		if (m) {
+			if (open) errors.push(`${rel(f)}:${i + 1}: @mirror ${m[1]} opened while ${open.name} is still open`);
+			open = { name: m[1], line: i + 1, body: [] };
+			continue;
+		}
+		if (CLOSE.test(lines[i])) {
+			if (!open) { errors.push(`${rel(f)}:${i + 1}: @endmirror with no open @mirror`); continue; }
+			if (!groups.has(open.name)) groups.set(open.name, []);
+			groups.get(open.name).push({ file: rel(f), line: open.line, body: normalise(open.body) });
+			open = null;
+			continue;
+		}
+		if (open) open.body.push(lines[i]);
+	}
+	if (open) errors.push(`${rel(f)}:${open.line}: @mirror ${open.name} is never closed (@endmirror)`);
+}
+
+function rel(f) { return relative(ROOT, f); }
+
+/* Strip common leading indent and trailing whitespace: a block nested one level deeper in one
+ * file is not a divergence. */
+function normalise(body) {
+	const kept = body.filter(l => l.trim() !== '');
+	if (!kept.length) return '';
+	const indent = Math.min(...kept.map(l => l.match(/^[ \t]*/)[0].length));
+	return kept.map(l => l.slice(indent).replace(/\s+$/, '')).join('\n');
+}
+
+/* whole-file pins (see SAME_FILE) */
+for (const [a, b] of SAME_FILE) {
+	let ta, tb;
+	try { ta = readFileSync(join(ROOT, a)); } catch { errors.push(`@same-file: ${a} is missing`); continue; }
+	try { tb = readFileSync(join(ROOT, b)); } catch { errors.push(`@same-file: ${b} is missing`); continue; }
+	if (!ta.equals(tb))
+		errors.push(`@same-file: ${a} and ${b} have DRIFTED apart — they must be byte-identical ` +
+			`(${ta.length} vs ${tb.length} bytes).`);
+	else
+		console.log(`  ok   @same-file ${a} == ${b}   (${ta.length} bytes)`);
+}
+
+let bad = 0;
+const names = [...groups.keys()].sort();
+for (const name of names) {
+	const copies = groups.get(name);
+	if (copies.length < 2) {
+		errors.push(`@mirror ${name}: only ONE copy (${copies[0].file}:${copies[0].line}). ` +
+			`A mirror of one enforces nothing — delete the tag, or restore the copy it was pinning.`);
+		bad++;
+		continue;
+	}
+	const first = copies[0];
+	const drifted = copies.filter(c => c.body !== first.body);
+	if (drifted.length) {
+		bad++;
+		errors.push(`@mirror ${name}: the copies have DRIFTED apart.`);
+		for (const c of copies)
+			errors.push(`    ${c.file}:${c.line}${c.body === first.body ? '' : '   <-- differs'}`);
+		/* show the first differing line, so the failure is actionable */
+		const a = first.body.split('\n'), b = drifted[0].body.split('\n');
+		for (let i = 0; i < Math.max(a.length, b.length); i++) {
+			if (a[i] !== b[i]) {
+				errors.push(`    first difference at body line ${i + 1}:`);
+				errors.push(`      ${first.file}: ${a[i] ?? '(end of block)'}`);
+				errors.push(`      ${drifted[0].file}: ${b[i] ?? '(end of block)'}`);
+				break;
+			}
+		}
+	} else {
+		console.log(`  ok   @mirror ${name.padEnd(22)} ${copies.length} copies, byte-identical   ` +
+			copies.map(c => `${c.file}:${c.line}`).join('  '));
+	}
+}
+
+if (!names.length) console.log('  (no @mirror groups found)');
+
+if (errors.length) {
+	console.error('\nFAIL: @mirror');
+	for (const e of errors) console.error('  ' + e);
+	console.error('\nA @mirror block is duplication the language forces on you. The tag is the promise');
+	console.error('that the copies stay identical; this is what keeps that promise. Fix the copies —');
+	console.error('or, if they are genuinely meant to differ now, they were never a mirror: untag them');
+	console.error('and write down why they diverged.');
+	process.exit(1);
+}
+
+console.log(`\n@mirror: ${names.length} group(s), every copy byte-identical.`);
