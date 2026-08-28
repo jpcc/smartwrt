@@ -1,3 +1,35 @@
+# SmartWrt
+
+**SmartWrt** is a fork of [OpenWrt](https://openwrt.org/) focused on providing a pre-configured and ready-to-use experience while maintaining maximum compatibility with and preserving the structure of the upstream project.
+
+The goal of SmartWrt is to make **minimal changes to OpenWrt**, primarily focused on including pre-selected packages, default configurations, and adjustments specifically tailored for an advanced residential environment. The objective is not to create a completely different distribution, but rather to provide an OpenWrt variant with selected features already integrated and configured.
+
+## Current Support
+
+At this time, the project is in an **experimental development, testing, and validation phase**, with an exclusive focus on:
+
+* **D-Link DIR-3040 A1**
+* **ramips** architecture
+* This platform is being used as the reference device for project development and validation
+
+Support for other devices and platforms is **not a priority at this stage**. Adaptations for additional targets may be considered in the future as the project evolves.
+
+## Status and Usage
+
+SmartWrt **should not currently be considered a stable or production-ready distribution**.
+
+The project is primarily being developed for:
+
+* development;
+* testing;
+* configuration validation;
+* experimentation with additional packages and features;
+* evaluation of changes to OpenWrt.
+
+**The use of SmartWrt in production environments or commercial applications is not recommended.** Its intended use at this stage is testing and experimentation, particularly on the currently supported hardware.
+
+As the project evolves, stability, compatibility, and support for additional devices may be evaluated and expanded.
+
 ## Development
 
 To build your own firmware you need a GNU/Linux, BSD or macOS system (case
@@ -6,7 +38,7 @@ case sensitive file system.
 
 ### Requirements
 
-You need the following tools to compile OpenWrt, the package names vary between
+You need the following tools to compile, the package names vary between
 distributions. A complete list with distribution specific packages is found in
 the [Build System Setup](https://openwrt.org/docs/guide-developer/build-system/install-buildsystem)
 documentation.
