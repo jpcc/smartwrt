@@ -81,3 +81,16 @@ packages to OpenWrt, please find the fitting repository below.
 
 * [OpenWrt Video](https://github.com/openwrt/video): Packages specifically
   focused on display servers and clients (Xorg and Wayland).
+
+## Licensing
+
+SmartWrt is based on OpenWrt and includes third-party components
+distributed under their respective licenses.
+
+The OpenWrt build system is licensed under GPL-2.0-only. Individual
+packages and components included in SmartWrt may be distributed under
+different open-source licenses.
+
+Each component retains its original copyright notices and license
+requirements. Refer to the respective package source and license files
+for the applicable license.
