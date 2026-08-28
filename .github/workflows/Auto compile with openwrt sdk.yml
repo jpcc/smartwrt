@@ -1,0 +1,330 @@
+#
+# Copyright (c) 2022-2025 SMALLPROGRAM <https://github.com/smallprogram>
+# Description: Auto compile
+#
+name: "Auto compile with openwrt sdk"
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
+env:
+  TZ: Asia/Shanghai
+  openwrt-bandix: ${{ github.repository }}
+
+jobs:
+  job_check:
+    name: Check Version
+    runs-on: ubuntu-latest
+    outputs:
+      openwrt-bandix_version: ${{ steps.check_version.outputs.latest_version }}
+      has_update: ${{ steps.check_version.outputs.has_update }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Check version
+        id: check_version
+        env:
+          url_tags: https://api.github.com/repos/${{ env.openwrt-bandix }}/releases/latest
+        run: |
+          cd openwrt-bandix
+          # 提取版本号和发布号
+          pkg_version=$(awk -F ':=' '/^PKG_VERSION:=/ {print $2}' Makefile | tr -d ' ')
+          pkg_release=$(awk -F ':=' '/^PKG_RELEASE:=/ {print $2}' Makefile | tr -d ' ')
+          
+          # 检查版本号是否提取成功
+          if [ -z "$pkg_version" ] || [ -z "$pkg_release" ]; then
+            echo "Error: Failed to extract version from Makefile"
+            echo "PKG_VERSION: '$pkg_version'"
+            echo "PKG_RELEASE: '$pkg_release'"
+            exit 1
+          fi
+          
+          # 格式化为 v0.8.1-r2 格式，如果是 r1 则省略
+          if [ "$pkg_release" = "1" ]; then
+            latest_version="v${pkg_version}"
+          else
+            latest_version="v${pkg_version}-r${pkg_release}"
+          fi
+          echo "latest_version=${latest_version}" >> $GITHUB_OUTPUT
+
+          remote_latest_version=$(wget -qO- -t1 -T2 ${{env.url_tags}} | jq -r '.tag_name')
+
+          if [ -z "$remote_latest_version" ] || [ "$remote_latest_version" = "null" ]; then
+            echo "Failed to fetch remote tags"
+            echo "has_update=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "Remote latest: $remote_latest_version"
+
+          # 去掉 tag_name 中的 v 前缀和 r 前缀，-r1 可以省略
+          # 格式：v0.8.1-r2 -> 0.8.1-2, v0.8.1-r1 -> 0.8.1, v0.8.1 -> 0.8.1
+          normalized_local_version=$(echo "$latest_version" | sed 's/^v//' | sed 's/-r\([0-9]*\)$/-\1/' | sed 's/-1$//')
+          normalized_remote_version=$(echo "$remote_latest_version" | sed 's/^v//' | sed 's/-r\([0-9]*\)$/-\1/' | sed 's/-1$//')
+
+          if [ "$normalized_local_version" = "$normalized_remote_version" ]; then
+            echo "has_update=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_update=true" >> $GITHUB_OUTPUT
+          fi
+
+
+      - name: Prepare release
+        if: steps.check_version.outputs.has_update == 'true'
+        run: |
+          echo "![](https://img.shields.io/github/downloads/${{ env.openwrt-bandix }}/${{steps.check_version.outputs.latest_version}}/total?style=flat-square) ![](https://github.com/${{ env.openwrt-bandix }}/actions/workflows/Auto%20compile%20with%20openwrt%20sdk.yml/badge.svg)" > release.txt
+          echo "" >> release.txt
+          echo "> ⚠️ **Note**: Packages for other platforms are currently being built. Files will be added to this release as they complete." >> release.txt
+          echo "> ⚠️ **注意**: 其他平台的软件包正在构建中，完成后将陆续添加到本页面" >> release.txt
+
+      - name: Generate new tag & release
+        if: steps.check_version.outputs.has_update == 'true'
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{steps.check_version.outputs.latest_version}}
+          name: ${{steps.check_version.outputs.latest_version}}
+          target_commitish: ${{ github.ref_name }}
+          prerelease: ${{steps.check_version.outputs.prerelease}}
+          body_path: release.txt
+
+
+  job_build:
+    name: Build openwrt-bandix [${{ matrix.platform }}-${{ matrix.ver }}]
+    needs: job_check
+    if: needs.job_check.outputs.has_update == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # --- 24.10.2 (ipk) ---
+          - platform: x86_64
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a5_vfpv4
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a7
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a9
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a9_neon
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a9_vfpv3-d16
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a15_neon-vfpv4
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: mips_24kc
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: mips_4kec
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: mips_mips32
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: mipsel_74kc
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: mipsel_mips32
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a7_vfpv4
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_arm1176jzf-s_vfp
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: aarch64_cortex-a53
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: aarch64_cortex-a72
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: aarch64_cortex-a76
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: riscv64_riscv64
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_fa526
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_xscale
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a7_neon-vfpv4
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: aarch64_generic
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: mipsel_24kc
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_arm926ej-s
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: arm_cortex-a8_vfpv3
+            sdk_ver: 24.10.2
+            ver: "ipk"
+          - platform: mipsel_24kc_24kf
+            sdk_ver: 24.10.2
+            ver: "ipk"
+
+          # --- snapshots (apk) ---
+          - platform: x86_64
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a15_neon-vfpv4
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a5_vfpv4
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a7_vfpv4
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: mips_24kc
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_arm1176jzf-s_vfp
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a7_neon-vfpv4
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: aarch64_cortex-a53
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: aarch64_cortex-a72
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: aarch64_cortex-a76
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: mipsel_mips32
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: mipsel_74kc
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a9
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: mips_mips32
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: riscv64_riscv64
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_fa526
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_xscale
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: aarch64_generic
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: mipsel_24kc
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a7
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_arm926ej-s
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: mipsel_24kc_24kf
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: mips_4kec
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a8_vfpv3
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a9_vfpv3-d16
+            sdk_ver: snapshots
+            ver: "apk"
+          - platform: arm_cortex-a9_neon
+            sdk_ver: snapshots
+            ver: "apk"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+
+      - name: Generate .config
+        run: |
+          echo "CONFIG_PACKAGE_bandix=m" > .config
+          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
+
+      - name: Build with OpenWrt SDK
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: ${{ matrix.sdk_ver == 'snapshots' && matrix.platform || format('{0}-{1}', matrix.platform, matrix.sdk_ver) }}
+          PACKAGES: openwrt-bandix
+          V: s
+
+      - name: Process and Rename Artifacts
+        id: compile
+        run: |
+          mkdir -p ${{ github.workspace }}/upload
+          
+          find bin/packages/ -type f \( -name 'bandix-*.ipk' -o -name 'bandix-*.apk' -o -name 'bandix_*.ipk' -o -name 'bandix_*.apk' \) -exec cp {} ${{ github.workspace }}/upload/ \;
+          
+          cd ${{ github.workspace }}/upload
+          
+          if [ -z "$(ls -A . 2>/dev/null)" ]; then
+            echo "错误: 未找到 openwrt-bandix 的 ipk/apk 产物"
+            exit 1
+          fi
+          
+          ARCH="${{ matrix.platform }}"
+          ARCH_ESCAPED=$(echo "$ARCH" | sed 's/[.*+?^${}()|[\]\\]/\\&/g')
+          
+          for file in *; do
+            if [[ -f "$file" ]]; then
+              filename="${file%.*}"
+              extension="${file##*.}"
+              
+              # 若文件名末尾尚未包含架构名，则追加
+              if [[ ! "$filename" =~ (^|[_-])${ARCH_ESCAPED}$ ]]; then
+                new_name="${filename}_${ARCH}.${extension}"
+                mv "$file" "$new_name"
+                echo "Renamed: $file -> $new_name"
+              else
+                echo "Skipped: $file already contains architecture."
+              fi
+            fi
+          done
+          
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "FIRMWARE=${{ github.workspace }}/upload" >> $GITHUB_ENV
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v3
+        if: steps.compile.outputs.status == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{needs.job_check.outputs.openwrt-bandix_version}}
+          files: ${{ env.FIRMWARE }}/*
