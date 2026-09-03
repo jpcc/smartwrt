@@ -1,0 +1,17 @@
+
+config globals
+	option description 'KSMD'
+	option workgroup 'SmartWRT'
+	option interface 'lan'
+
+config share
+	option name 'SmartWRT'
+	option path '/mnt/sda1/'
+	option read_only 'no'
+	option guest_ok 'yes'
+	option create_mask '0666'
+	option dir_mask '0777'
+	option force_root '1'
+	option users 'root'
+	option hide_dot_files 'no'
+

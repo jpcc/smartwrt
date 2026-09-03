@@ -1,0 +1,69 @@
+
+config system
+	option ttylogin '0'
+	option cronloglevel '9'
+	option log_proto 'tcp'
+	option log_size '128'
+	option conloglevel '5'
+	option notes ''
+	option hostname 'SmartWRT'
+	option zram_comp_algo 'zstd'
+	option description 'https://github.com/jpcc/smartwrt'
+
+config timeserver 'ntp'
+	list server '0.openwrt.pool.ntp.org'
+	list server '1.openwrt.pool.ntp.org'
+	list server '2.openwrt.pool.ntp.org'
+	list server '3.openwrt.pool.ntp.org'
+	option enable_server '1'
+
+config led
+	option name 'Power - White'
+	option sysfs 'white:power'
+	option trigger 'default-on'
+	option default '1'
+
+config led
+	option name 'WAN Link'
+	option sysfs 'white:wan'
+	option trigger 'netdev'
+	option dev 'wan'
+	option mode 'link'
+
+config led
+	option name 'WAN Activity'
+	option sysfs 'orange:wan'
+	option trigger 'netdev'
+	option dev 'wan'
+	option mode 'tx rx'
+
+config led
+	option name 'USB 2.0'
+	option sysfs 'white:usb-2'
+	option trigger 'usbport'
+	option default '1'
+
+config led
+	option name 'USB 3.0'
+	option sysfs 'white:usb-3'
+	option trigger 'usbport'
+	option default '1'
+
+config led
+	option name 'Wifi 2.4Ghz'
+	option sysfs 'white:wlan-2ghz'
+	option trigger 'phy1tpt'
+	option default '1'
+
+config led
+	option name 'Wifi 5Ghz 1'
+	option sysfs 'white:wlan-5ghz-0'
+	option trigger 'phy2tpt'
+	option default '1'
+
+config led
+	option name 'Wifi 5Ghz 2'
+	option sysfs 'white:wlan-5ghz-1'
+	option trigger 'phy3tpt'
+	option default '1'
+

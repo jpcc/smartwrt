@@ -1,0 +1,17 @@
+
+config rpcd
+	option socket '/var/run/ubus/ubus.sock'
+	option timeout '30'
+
+config login
+	option username 'root'
+	option password '$p$root'
+	list read '*'
+	list write '*'
+
+config login 'adblock_fast_api'
+	option username 'adblock-fast-api'
+	option password '$p$adblock-fast-api'
+	list read 'adblock-fast-api'
+	list write 'adblock-fast-api'
+

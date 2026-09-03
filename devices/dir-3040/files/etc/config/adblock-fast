@@ -1,0 +1,130 @@
+
+config adblock-fast 'config'
+	option enabled '1'
+	list allowed_domain 'cdn.jsdelivr.net'
+	option allow_non_ascii '0'
+	option canary_domains_icloud '0'
+	option canary_domains_mozilla '0'
+	option compressed_cache '0'
+	option compressed_cache_dir '/etc'
+	option config_update_enabled '0'
+	option config_update_url 'https://cdn.jsdelivr.net/gh/openwrt/packages/net/adblock-fast/files/adblock-fast.config.update'
+	option curl_max_file_size '30000000'
+	option curl_retry '3'
+	option debug_init_script '0'
+	option debug_performance '0'
+	option dns 'smartdns.domainset'
+	list dnsmasq_instance '*'
+	option download_timeout '10'
+	option force_dns '1'
+	list force_dns_port '53'
+	list force_dns_port '853'
+	option parallel_downloads '8'
+	option pause_timeout '20'
+	option procd_trigger_wan6 '0'
+	option procd_boot_wan_timeout '60'
+	option verbosity '2'
+	option heartbeat_domain 'heartbeat.melmac.ca'
+	option heartbeat_sleep_timeout '10'
+	option update_config_sizes '1'
+	option dnsmasq_sanity_check '1'
+	option dnsmasq_validity_check '0'
+	option rpcd_token ''
+	option download_connect_timeout '10'
+
+config file_url
+	option name 'Hagezi - Pro'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/domains/pro.txt'
+	option size '16402778'
+	option action 'block'
+
+config file_url
+	option name 'AdguardTeam - CNAME Trackers'
+	option url 'https://raw.githubusercontent.com/AdguardTeam/cname-trackers/master/data/combined_disguised_trackers_justdomains.txt'
+	option size '6996260'
+	option action 'block'
+
+config file_url
+	option name 'OISD - Big'
+	option url 'https://big.oisd.nl/'
+	option size '6200736'
+	option action 'block'
+
+config file_url
+	option name 'StevenBlack - Unified hosts'
+	option url 'https://cdn.jsdelivr.net/gh/StevenBlack/hosts/hosts'
+	option size '2343643'
+	option action 'block'
+
+config file_url
+	option name '1Hosts - Lite'
+	option url 'https://o0.pages.dev/Lite/domains.txt'
+	option size '69375'
+	option action 'block'
+
+config file_url
+	option name 'Bongochong - Combined Privacy Block Lists (TLD Optimized)'
+	option url 'https://cdn.jsdelivr.net/gh/bongochong/CombinedPrivacyBlockLists/NoFormatting/cpbl-ctld.txt'
+	option size '4403077'
+	option action 'block'
+
+config file_url
+	option name 'CERT Polska - Dangerous Websites'
+	option url 'https://hole.cert.pl/domains/v2/domains.txt'
+	option size '2863124'
+	option action 'block'
+
+config file_url
+	option name 'Kboghdady - YouTube Ads DNS'
+	option url 'https://cdn.jsdelivr.net/gh/kboghdady/youTube_ads_4_pi-hole/black.list'
+	option size '553006'
+	option action 'block'
+
+config file_url
+	option name 'AdguardTeam - CNAME Clickthroughs'
+	option url 'https://raw.githubusercontent.com/AdguardTeam/cname-trackers/master/data/combined_disguised_clickthroughs_justdomains.txt'
+	option size '634820'
+	option action 'block'
+
+config file_url
+	option name 'SomeoneWhoCares - Hosts'
+	option url 'https://someonewhocares.org/hosts/hosts'
+	option size '392794'
+	option action 'block'
+
+config file_url
+	option name 'WinHelp2002 MVPS - Hosts'
+	option url 'https://winhelp2002.mvps.org/hosts.txt'
+	option size '334861'
+	option action 'block'
+
+config file_url
+	option name 'AdAway - Hosts'
+	option url 'https://adaway.org/hosts.txt'
+	option size '243454'
+	option action 'block'
+
+config file_url
+	option name 'AdguardTeam - CNAME Ads'
+	option url 'https://raw.githubusercontent.com/AdguardTeam/cname-trackers/master/data/combined_disguised_ads_justdomains.txt'
+	option size '269962'
+	option action 'block'
+
+config file_url
+	option name 'AdguardTeam - CNAME Microsites'
+	option url 'https://raw.githubusercontent.com/AdguardTeam/cname-trackers/master/data/combined_disguised_microsites_justdomains.txt'
+	option size '577234'
+	option action 'block'
+
+config file_url
+	option name 'Yoyo.org - Hosts'
+	option url 'https://pgl.yoyo.org/as/serverlist.php?hostformat=hosts&showintro=1&mimetype=plaintext'
+	option size '94803'
+	option action 'block'
+
+config file_url
+	option name 'Hoshsadiq - NoCoin Adblock List'
+	option url 'https://cdn.jsdelivr.net/gh/hoshsadiq/adblock-nocoin-list/hosts.txt'
+	option size '8173'
+	option action 'block'
+

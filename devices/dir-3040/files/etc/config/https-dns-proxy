@@ -1,0 +1,8 @@
+
+config main 'config'
+	option canary_domains_icloud '0'
+	option canary_domains_mozilla '0'
+	option dnsmasq_config_update '*'
+	option force_dns '0'
+	option procd_trigger_wan6 '0'
+

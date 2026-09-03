@@ -1,0 +1,8 @@
+
+config global
+	option logging '0'
+	option recheck_interval '10'
+	option modules_retries '10'
+	option unload_modules '0'
+	option enabled '0'
+

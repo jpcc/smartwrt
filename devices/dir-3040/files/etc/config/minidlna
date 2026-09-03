@@ -1,0 +1,13 @@
+
+config minidlna 'config'
+	option user 'minidlna'
+	option port '8200'
+	option interface 'br-lan'
+	option db_dir '/var/run/minidlna'
+	option root_container '.'
+	option album_art_names 'Cover.jpg/cover.jpg/AlbumArtSmall.jpg/albumartsmall.jpg/AlbumArt.jpg/albumart.jpg/Album.jpg/album.jpg/Folder.jpg/folder.jpg/Thumb.jpg/thumb.jpg'
+	option enabled '0'
+	option uuid ''
+	list media_dir ''
+	option friendly_name 'SmartWRT'
+

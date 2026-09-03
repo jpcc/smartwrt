@@ -1,0 +1,13 @@
+/etc/init.d/adblock-fast enable
+/etc/init.d/smartdns enable
+/etc/init.d/bandix disable
+/etc/init.d/ddns disable
+/etc/init.d/etherwake disable
+/etc/init.d/hd-idle disable
+/etc/init.d/https-dns-proxy disable
+/etc/init.d/ksmbd disable
+/etc/init.d/minidlna disable
+/etc/init.d/travelmate disable
+/etc/init.d/wifi_schedule disable
+
+exit 0

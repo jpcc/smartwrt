@@ -1,0 +1,5 @@
+config hd-idle
+	option idle_time_unit 'minutes'
+	option enabled '0'
+	option idle_time_interval '1'
+
