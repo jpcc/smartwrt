@@ -1,20 +1,75 @@
 # SmartWrt
 
-**SmartWrt** is a fork of [OpenWrt](https://openwrt.org/) focused on providing a pre-configured and ready-to-use experience while maintaining maximum compatibility with and preserving the structure of the upstream project.
+**SmartWrt** is a fork of [OpenWrt](https://openwrt.org/) that delivers a pre-configured, ready-to-use router firmware: a curated set of packages, pre-tuned UCI defaults and device-specific configuration files, built with a modern, hardened toolchain and shipped as images that are ready to flash and work out of the box.
 
-The goal of SmartWrt is to make **minimal changes to OpenWrt**, primarily focused on including pre-selected packages, default configurations, and adjustments specifically tailored for an advanced residential environment. The objective is not to create a completely different distribution, but rather to provide an OpenWrt variant with selected features already integrated and configured.
+The fork is intentionally thin. It preserves full compatibility with the OpenWrt project, tracking the upstream branch through periodic merges and limiting its own changes to package selection, default configurations and adjustments tailored to an advanced residential environment. The goal is not a completely different distribution, but an variant that already comes with its features integrated and configured.
 
-## Current Support
+## SmartWrt features and package additions
 
-At this time, the project is in an **experimental development, testing, and validation phase**, with an exclusive focus on this devices:
+#### Features
 
-* [**D-Link DIR-3040 A1**](https://techinfodepot.shoutwiki.com/wiki/D-Link_DIR-3040_rev_A1)
+* Advanced DNS server capable of caching (with persistence), prefetching, fast IP selection, configurable upstream servers and optimized domain resolution.
+* System-wide ad and tracker blocking, integrated with the DNS server.
+* Per-device bandwidth monitoring and visualization, including connection states and DNS query analysis.
+* Dynamic DNS client updates to keep hostnames in sync with changing IP addresses.
+* Network filtering to help prevent IP address spoofing from the local network.
+* WireGuard VPN with LuCI configuration and management.
+* Full IEEE 802.1X authentication and supplicant implementation with OpenSSL, enabling advanced Wi-Fi roaming, including 802.11r Fast BSS Transition and 802.11k Radio Resource Management.
+* Wi-Fi client steering and access-point load balancing.
+* Management and sharing of upstream Wi-Fi connections.
+* Scheduled Wi-Fi enable/disable and Wi-Fi client association history visualization.
+* Automatic network connectivity monitoring and recovery.
+* Wake-on-LAN management through LuCI.
+* Kernel-based SMB/CIFS file server with Web Services Dynamic Discovery for improved Windows network discovery.
+* DLNA/UPnP media server for sharing multimedia content over the network.
+* LuCI-based file manager, command runner, apk package management and embedded web server configuration.
+* Compressed RAM-based block devices (ZRAM) using the Zstd compression algorithm.
+* TCP BBR as the default TCP congestion-control algorithm.
+* Hardware and Software flow offloading through nftables to accelerate packet forwarding and reduce CPU overhead.
+* Hardware-accelerated cryptographic operations through the AF_ALG sockets engine.
+* OpenSSL as the primary cryptographic and TLS library instead of mbedTLS.
+* Automatic distribution of hardware interrupts across available CPU cores.
+* Configurable hard-drive spindown/standby for connected storage devices.
+* Alternative LuCI themes: Argon and Footstrap.
+* Architecture-specific build and runtime optimizations.
+* Compiler, linker and runtime hardening: ASLR/PIE, stack protector, FORTIFY_SOURCE and full RELRO.
+* Modern toolchain: GCC 15.2.0 and GNU Binutils 2.45.1.
 
-Support for other devices and platforms is **not a priority at this stage**. Adaptations for additional targets may be considered in the future as the project evolves.
+#### Packages
+
+* **adblock-fast** + `luci-app-adblock-fast` — system-wide ad and tracker blocking.
+* **bandix** + `luci-app-bandix` — eBPF-based network traffic monitoring.
+* **bcp38** + `luci-app-bcp38` — BCP38 spoofing prevention.
+* **ddns-scripts** + `ddns-scripts-services` + `luci-app-ddns` — dynamic DNS client and service definitions.
+* **etherwake** + `luci-app-wol` — Wake-on-LAN.
+* **hd-idle** + `luci-app-hd-idle` — hard-drive spindown/standby.
+* **irqbalance** + `luci-app-irqbalance` — hardware interrupt balancing.
+* **kmod-nft-offload** — nftables flow offloading.
+* **kmod-tcp-bbr** — TCP BBR congestion control, set as default by the bundled sysctl.
+* **ksmbd-server** + `kmod-fs-ksmbd` + `luci-app-ksmbd` + **wsdd2** — kernel SMB/CIFS server and Windows discovery.
+* **libopenssl** + `libustream-openssl` — OpenSSL TLS library and ustream integration.
+* **luci-app-commands** — LuCI command runner.
+* **luci-app-filemanager** — LuCI file manager.
+* **luci-app-package-manager** — LuCI package management UI for apk.
+* **luci-app-uhttpd** — LuCI configuration for the embedded web server.
+* **luci-app-wifihistory** — Wi-Fi client history visualization.
+* **luci-theme-argon** + `luci-app-argon-config` + **luci-theme-footstrap** — LuCI themes and theme configuration.
+* **minidlna** + `luci-app-minidlna` — DLNA/UPnP media server.
+* **smartdns** + `luci-app-smartdns` — advanced DNS server.
+* **travelmate** — upstream Wi-Fi connection manager.
+* **usteer** — Wi-Fi client steering and AP load balancing.
+* **watchcat** — connectivity monitoring and recovery.
+* **wifischedule** + `luci-app-wifischedule` — scheduled Wi-Fi.
+* **wpad-openssl** — full IEEE 802.1X authenticator and supplicant with OpenSSL.
+* **wireguard-tools** + `kmod-wireguard` + `luci-proto-wireguard` — WireGuard VPN.
+* **zram-swap** + `kmod-zram` — ZRAM swap with Zstd compression.
+
+> **Note:** Bandix requires switching to *software flow offloading* during traffic monitoring. 
+> If you enable Bandix, change the *flow offloading* setting under Network → Firewall.
 
 ## Status and Usage
 
-SmartWrt **should not currently be considered a stable or production-ready distribution**.
+SmartWrt should not currently be considered a stable or production-ready distribution.
 
 The project is primarily being developed for:
 
@@ -24,13 +79,29 @@ The project is primarily being developed for:
 * experimentation with additional packages and features;
 * evaluation of changes to OpenWrt.
 
-**The use of SmartWrt in production environments or commercial applications is not recommended.** Its intended use at this stage is testing and experimentation, particularly on the currently supported hardware.
+The use of SmartWrt in production environments or commercial applications is not recommended. Its intended use at this stage is testing and experimentation, particularly on the currently supported hardware.
 
-As the project evolves, stability, compatibility, and support for additional devices may be evaluated and expanded.
+## Current Support
+
+At this time, the project is in an experimental development, testing, and validation phase, with an exclusive focus on this devices:
+
+* [**D-Link DIR-3040 A1**](https://techinfodepot.shoutwiki.com/wiki/D-Link_DIR-3040_rev_A1)
+
+> **Note:** Support for other devices and platforms is not a priority at this stage. As the project evolves, stability, compatibility, and support for additional devices may be evaluated and expanded.
 
 ## Development
 
-To build your own firmware you need a GNU/Linux, BSD or macOS system (case
+### Repository layout
+
+* `devices/dir-3040/configs/` — source build configuration (copied to `.config`)
+* `devices/dir-3040/files/` — device-specific UCI configs (copied to `files/`)
+* `files/` — root overlay applied to the image
+* `.config` is generated from the device config via `make defconfig`; edit
+  `devices/dir-3040/configs/dir-3040.config`, never `.config` directly
+
+### Build
+
+To build your own SmartWrt firmware you need a GNU/Linux, BSD or macOS system (case
 sensitive filesystem required). Cygwin is unsupported because of the lack of a
 case sensitive file system.
 
@@ -58,42 +129,29 @@ cp -a devices/dir-3040/files/. files/
 make -j$(nproc) defconfig download clean world
 ```
 
-The resulting firmware files will be located in "~/smartwrt/bin/targets/ramips/mt7621/"
+### Build artifacts
 
-### SmartWrt features and package additions
+The resulting firmware files will be located in `bin/targets/ramips/mt7621/`. 
+The build produces three artifacts:
 
-* **Adblock Fast** — Adds system-wide ad and tracker blocking with LuCI integration.
-* **Argon Theme** —  Adds the Argon LuCI theme as an alternative web interface.
-* **Argon Config** — Adds LuCI configuration support for the Argon theme.
-* **Bandix** — Adds bandwidth monitoring and visualization capabilities with LuCI integration.
-* **BCP38** — Adds network filtering to help prevent IP address spoofing from the local network.
-* **Binutils 2.45.1** — Uses GNU Binutils 2.45.1 as part of the SmartWrt toolchain.
-* **Build and runtime optimizations** — Adds architecture-specific build and runtime optimizations.
-* **Compiler Optimizations** — Adds architecture-specific compiler optimizations.
-* **File Manager** — Adds a LuCI-based file manager for managing files directly from the web interface.
-* **Footstrap** — Adds the Footstrap LuCI theme as an alternative web interface.
-* **GCC 15.2.0** — Uses GCC 15.2.0 as the compiler toolchain for building SmartWrt.
-* **Hardening** — Adds additional compiler, linker, and runtime hardening measures to improve system security and resilience.
-* **Hardware-Accelerated Cryptography** — Adds hardware-accelerated cryptographic operations through the AF_ALG sockets engine.
-* **Hardware Flow Offloading** — Enables hardware-based flow offloading to accelerate packet forwarding and reduce CPU overhead for supported network traffic.
-* **HD Idle** — Adds configurable hard-drive spindown/standby support for connected storage devices.
-* **HTTPS DNS Proxy** — Adds DNS-over-HTTPS forwarding support.
-* **IRQBalance** — Adds automatic distribution of hardware interrupts across available CPU cores.
-* **Ksmbd** — Adds a kernel-based SMB/CIFS file server for network file sharing.
-* **MiniDLNA** — Adds DLNA/UPnP media-server functionality for sharing multimedia content over the network.
-* **OpenSSL** — Uses OpenSSL as the primary cryptographic and TLS library instead of mbedTLS.
-* **TCP BBR** — Uses TCP BBR as the default congestion-control algorithm, providing improved throughput, latency, and network utilization.
-* **SmartDNS** — Adds advanced DNS resolution, including support for configurable DNS servers and optimized domain resolution.
-* **Travelmate** — Adds support for managing and sharing upstream Wi-Fi connections.
-* **uSteer** — Adds Wi-Fi client steering and access-point load balancing capabilities.
-* **Watchcat** — Adds automatic network connectivity monitoring and recovery mechanisms.
-* **WiFi Schedule** — Adds scheduled Wi-Fi enable/disable functionality.
-* **Wpad-openssl** — Uses the full IEEE 802.1X authentication and supplicant implementation with OpenSSL, enabling advanced Wi-Fi roaming and authentication features including 802.11r Fast BSS Transition and 802.11k Radio Resource Management.
-* **WireGuard** — Adds WireGuard VPN support, including LuCI configuration and management.
-* **WOL** — Adds Wake-on-LAN management through LuCI.
-* **WSDD2** — Adds Web Services Dynamic Discovery support for improved Windows network discovery.
-* **ZRAM** — Adds compressed RAM-based block devices to improve memory utilization and reduce memory pressure on resource-constrained systems.
-* **ZSTD** — Adds Zstd as the default compression algorithm.
+* **`smartwrt-ramips-mt7621-dlink_dir-3040-a1-initramfs-kernel.bin`** — Kernel and root filesystem loaded entirely into RAM, without touching the flash. Used for testing and validating builds before installing them permanently.
+* **`smartwrt-ramips-mt7621-dlink_dir-3040-a1-squashfs-sysupgrade.bin`** — The regular firmware image. Used to install SmartWrt on a device already running OpenWrt/SmartWrt, via `sysupgrade` or LuCI.
+* **`smartwrt-ramips-mt7621-dlink_dir-3040-a1-squashfs-recovery.bin`** — Recovery image in the layout accepted by the vendor bootloader. It must be used to unlock the DIR-3040 with the **D-Link recovery tool**, which is how SmartWrt is installed on a device still running the stock firmware, and it also serves as a recovery path after a failed flash.
+
+## Flashing SmartWrt on a stock device
+
+On a device still running the stock D-Link firmware, SmartWrt is installed through the **D-Link recovery GUI** using the recovery image (`smartwrt-ramips-mt7621-dlink_dir-3040-a1-squashfs-recovery.bin`). The steps below follow the OpenWrt installation instructions for the DIR-3040 A1.
+
+> **Note:** The recovery GUI seems to only work in Firefox on Windows.
+
+1. Push and hold the reset button (on the bottom of the device) while plugging in the power cable, until the power LED starts flashing (about 10 seconds or so).
+2. Give it ~30 seconds to boot the recovery mode GUI.
+3. Connect your client computer to **LAN1** of the device.
+4. Set your client IP address manually to `192.168.0.2` / `255.255.255.0`.
+5. Open the recovery page of the device at `http://192.168.0.1/`.
+6. Use the emergency web GUI to upload and flash the SmartWrt recovery image to the device.
+
+After the flash completes, the device boots SmartWrt.
 
 ## Licensing
 
