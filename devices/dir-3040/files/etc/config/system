@@ -1,9 +1,9 @@
 
 config system
 	option ttylogin '0'
-	option cronloglevel '9'
+	option cronloglevel '3'
 	option log_proto 'tcp'
-	option log_size '128'
+	option log_size '64'
 	option conloglevel '5'
 	option notes ''
 	option hostname 'SmartWRT'

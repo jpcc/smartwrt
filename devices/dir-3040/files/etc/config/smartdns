@@ -7,7 +7,7 @@ config smartdns
 	option serve_expired '1'
 	option seconddns_port '6553'
 	option seconddns_tcp_server '1'
-	option cache_size '102400'
+	option cache_size '2048'
 	option rr_ttl '600'
 	option rr_ttl_min '60'
 	option rr_ttl_max '600'
@@ -19,7 +19,7 @@ config smartdns
 	option bind_device '1'
 	option cache_persist '1'
 	option port '6053'
-	option speed_check_mode 'tcp:443,tcp:80,ping'
+	option speed_check_mode 'ping'
 	option response_mode 'fastest-ip'
 	list conf_files '/var/run/adblock-fast/smartdns.domainset.conf'
 	option old_port '6053'
@@ -39,13 +39,6 @@ config server
 	option enabled '0'
 	option name 'CloudFlare Unfiltered'
 	option ip 'https://1.0.0.1/dns-query'
-	option type 'https'
-	option server_group 'Unfiltered'
-
-config server
-	option enabled '0'
-	option name 'CloudFlare Unfiltered'
-	option ip 'https://1.1.1.1/dns-query'
 	option type 'https'
 	option server_group 'Unfiltered'
 
@@ -78,16 +71,9 @@ config server
 	option server_group 'Filtered'
 
 config server
-	option enabled '0'
-	option name 'CloudFlare Filtered'
-	option ip 'https://1.0.0.2/dns-query'
-	option type 'https'
-	option server_group 'Filtered'
-
-config server
 	option enabled '1'
 	option name 'CloudFlare Filtered'
-	option ip 'https://1.1.1.2/dns-query'
+	option ip 'https://1.0.0.2/dns-query'
 	option type 'https'
 	option server_group 'Filtered'
 

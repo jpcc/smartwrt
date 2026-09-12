@@ -4,7 +4,6 @@
 /etc/init.d/ddns disable
 /etc/init.d/etherwake disable
 /etc/init.d/hd-idle disable
-/etc/init.d/https-dns-proxy disable
 /etc/init.d/ksmbd disable
 /etc/init.d/minidlna disable
 /etc/init.d/travelmate disable
