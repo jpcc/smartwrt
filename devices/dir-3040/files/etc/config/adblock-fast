@@ -34,25 +34,25 @@ config adblock-fast 'config'
 
 config file_url
 	option name 'Hagezi - Ultimate'
-	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/ultimate.txt'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/ultimate-onlydomains.txt'
 	option action 'block'
 	option enabled '0'
 
 config file_url
 	option name 'Hagezi - Ultimate Mini'
-	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/ultimate.mini.txt'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/ultimate.mini-onlydomains.txt'
 	option action 'block'
 	option enabled '0'
 
 config file_url
 	option name 'Hagezi - Pro+'
-	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.plus.txt'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.plus-onlydomains.txt'
 	option action 'block'
 	option enabled '0'
 
 config file_url
 	option name 'Hagezi - Pro+ Mini'
-	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.plus.mini.txt'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.plus.mini-onlydomains.txt'
 	option action 'block'
 	option enabled '1'
 
@@ -64,13 +64,13 @@ config file_url
 
 config file_url
 	option name 'Hagezi - Pro Mini'
-	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.mini.txt'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/pro.mini-onlydomains.txt'
 	option action 'block'
 	option enabled '0'
 
 config file_url
 	option name 'Hagezi - Normal'
-	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/multi.txt'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/light-onlydomains.txt'
 	option action 'block'
 	option enabled '0'
 
