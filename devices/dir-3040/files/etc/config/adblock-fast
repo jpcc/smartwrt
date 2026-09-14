@@ -70,13 +70,13 @@ config file_url
 
 config file_url
 	option name 'Hagezi - Normal'
-	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/light-onlydomains.txt'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/multi-onlydomains.txt'
 	option action 'block'
 	option enabled '0'
 
 config file_url
 	option name 'Hagezi - Light'
-	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/light.txt'
+	option url 'https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/wildcard/light-onlydomains.txt'
 	option action 'block'
 	option enabled '0'
 
