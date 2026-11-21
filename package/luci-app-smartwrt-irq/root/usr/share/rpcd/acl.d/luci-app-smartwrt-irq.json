@@ -1,0 +1,27 @@
+{
+  "luci-app-smartwrt-irq": {
+    "description": "Grant UCI access for luci-app-smartwrt-irq",
+    "read": {
+      "file": {
+        "/proc/interrupts": [
+          "read"
+        ]
+      },
+      "ubus": {
+        "service": [
+          "list"
+        ]
+      },
+      "uci": [
+        "smartwrt-irq",
+        "irqbalance"
+      ]
+    },
+    "write": {
+      "uci": [
+        "smartwrt-irq",
+        "irqbalance"
+      ]
+    }
+  }
+}

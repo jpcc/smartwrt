@@ -1,0 +1,4 @@
+{
+	"config": "smartwrt-irq",
+	"init": "smartwrt-irq"
+}

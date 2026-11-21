@@ -1,0 +1,11 @@
+uci -q set smartwrt-irq.policy.mode=manual
+uci -q delete smartwrt-irq.policy.enabled
+uci -q commit smartwrt-irq
+
+if [ "$(uci -q get smartwrt-irq.policy.mode)" = manual ]; then
+	uci -q set irqbalance.irqbalance.enabled=0
+	uci -q commit irqbalance
+fi
+
+/etc/init.d/smartwrt-irq enable
+exit 0

@@ -1,0 +1,10 @@
+#!/bin/sh
+[ "$ACTION" = add ] || [ "$ACTION" = ifup ] || exit 0
+
+case "$DEVICE" in
+	eth* | br-lan* | lan*) : ;;
+	*) exit 0 ;;
+esac
+
+[ "$(uci -q get smartwrt-irq.policy.on_reload)" = 1 ] || exit 0
+/usr/libexec/smartwrt/irq-manual.sh run &

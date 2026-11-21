@@ -1,0 +1,39 @@
+# IRQ placement policy.
+#
+# Discovery is generic: the wired IRQs are the interrupt lines whose labels
+# match eth_pattern, and each radio is resolved from its ieee80211 phy device.
+# On platforms that route an IRQ to a single CPU (e.g. MIPS GIC), spread load
+# by assigning distinct IRQs to distinct CPUs.
+#
+config irq 'policy'
+
+	# manual - assign each network IRQ to a fixed CPU
+	# mixed  - pin the network IRQs, balance everything else via irqbalance
+	# auto   - hand every IRQ to irqbalance
+	# off    - do nothing here
+	option mode 'manual'
+
+	# Interrupt label pattern for the wired path. Empty means "eth".
+	option eth_pattern 'eth'
+
+	# Optional label pattern to override phy-based radio discovery.
+	# option wifi_pattern ''
+
+	# CPU for the wired IRQs. Empty means the first thread of the first core.
+	option eth_cpu ''
+
+	# CPUs for the radios, assigned round-robin. Empty means automatic:
+	# one free cache group per radio when possible, spilling into its
+	# remaining threads only after every group is taken.
+	# Comma-separated list, e.g. "0,1".
+	option wifi_cpu '2,3'
+
+	# Re-apply after network or Wi-Fi reloads.
+	option on_reload '1'
+
+	# Seconds to wait for the radio IRQs during boot.
+	option timeout '30'
+
+	# 0 silent, 1 decisions, 2 plus full tables
+	# Unchecked means silent; checked logs at debug level in both modes.
+	option debug '0'

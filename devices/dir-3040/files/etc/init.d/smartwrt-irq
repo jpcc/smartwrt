@@ -1,0 +1,68 @@
+#!/bin/sh /etc/rc.common
+# One-shot IRQ placement, run in the background so PCIe enumeration cannot
+# stall boot.
+
+START=98
+STOP=10
+
+ENGINE=/usr/libexec/smartwrt/irq-manual.sh
+PINNED=/tmp/run/smartwrt-irq/pinned
+extra_command "rebalance" "Refresh derived daemon bans (called by the engine)"
+
+# Rebuild the daemon ban list from the pins just applied, then restart it.
+rebalance() {
+	[ "$(uci -q get smartwrt-irq.policy.mode)" = mixed ] || return 0
+	[ -r "$PINNED" ] || return 0
+	# serialize concurrent callers
+	exec 9>/tmp/run/smartwrt-irq.lock
+	flock 9
+	uci -q delete irqbalance.irqbalance.banirq
+	while read -r _i; do
+		case $_i in *[!0-9]*|'') continue ;; esac
+		uci -q add_list irqbalance.irqbalance.banirq="$_i"
+	done < "$PINNED"
+	uci -q commit irqbalance
+	/etc/init.d/irqbalance restart >/dev/null 2>&1 &
+}
+
+# Run the daemon in auto/mixed, stop it otherwise.
+reconcile() {
+	[ -x /etc/init.d/irqbalance ] || return 0
+	local mode dbg
+	mode=$(uci -q get smartwrt-irq.policy.mode)
+	dbg=$(uci -q get smartwrt-irq.policy.debug)
+	[ "$dbg" = 1 ] || dbg=0
+
+	case "$mode" in
+	auto|mixed)
+		uci -q set irqbalance.irqbalance.enabled=1
+		uci -q set irqbalance.irqbalance.debug="$dbg"
+		if [ "$mode" = auto ]; then
+			uci -q delete irqbalance.irqbalance.banirq
+			rm -f "$PINNED"
+		fi
+		uci -q commit irqbalance
+		/etc/init.d/irqbalance start >/dev/null 2>&1 ;;
+	*)
+		uci -q set irqbalance.irqbalance.enabled=0
+		uci -q delete irqbalance.irqbalance.banirq
+		uci -q commit irqbalance
+		rm -f "$PINNED"
+		/etc/init.d/irqbalance stop >/dev/null 2>&1 ;;
+	esac
+}
+
+start() {
+	[ -x "$ENGINE" ] || { logger -t smartwrt-irq -- "missing engine: $ENGINE"; return 1; }
+	reconcile
+	SMARTWRT_DEBUG="$(uci -q get smartwrt-irq.policy.debug)" "$ENGINE" run &
+}
+
+# the engine only writes when affinity differs
+reload_service() {
+	start
+}
+
+stop() {
+	return 0
+}
