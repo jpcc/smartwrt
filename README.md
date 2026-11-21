@@ -28,7 +28,7 @@ The fork is intentionally thin. It preserves full compatibility with the OpenWrt
 * Hardware and Software flow offloading through nftables to accelerate packet forwarding and reduce CPU overhead.
 * Hardware-accelerated cryptographic operations through the AF_ALG sockets engine.
 * OpenSSL as the primary cryptographic and TLS library instead of mbedTLS.
-* Automatic distribution of hardware interrupts across available CPU cores.
+* Configurable hardware interrupt steering with automatic distribution across available CPU cores, per-interrupt manual assignment and a LuCI configuration page.
 * Configurable hard-drive spindown/standby for connected storage devices.
 * Alternative LuCI themes: Argon and Footstrap.
 * Architecture-specific build and runtime optimizations.
@@ -43,7 +43,8 @@ The fork is intentionally thin. It preserves full compatibility with the OpenWrt
 * **ddns-scripts** + `ddns-scripts-services` + `luci-app-ddns` — dynamic DNS client and service definitions.
 * **etherwake** + `luci-app-wol` — Wake-on-LAN.
 * **hd-idle** + `luci-app-hd-idle` — hard-drive spindown/standby.
-* **irqbalance** + `luci-app-irqbalance` — hardware interrupt balancing.
+* **irqbalance** — hardware interrupt balancing daemon (automatically disabled when SmartWrt IRQ runs in manual mode).
+* **smartwrt-irq** + `luci-app-smartwrt-irq` — configurable hardware interrupt steering service with automatic or manual IRQ assignment and a LuCI status/configuration page.
 * **kmod-nft-offload** — nftables flow offloading.
 * **kmod-tcp-bbr** — TCP BBR congestion control, set as default by the bundled sysctl.
 * **ksmbd-server** + `kmod-fs-ksmbd` + `luci-app-ksmbd` + **wsdd2** — kernel SMB/CIFS server and Windows discovery.
